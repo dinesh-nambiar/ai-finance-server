@@ -19,7 +19,6 @@ _period=""
 _interval=""
 
 
-
 def load_config():
     global _period, _interval
     config = configparser.ConfigParser()
@@ -262,7 +261,6 @@ def get_tickers(tickers : list):
     }
 
 
+load_config()
 if __name__ == "__main__":
-    load_config()
     get_tickers(['AAPL', 'MSFT', 'GOOGL'])
-

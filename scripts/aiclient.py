@@ -9,7 +9,7 @@ _url = 'http://192.168.0.2:8000/process'
 
 def send_items(items, url=_url):
     """POST a list of strings to the server and print the plain-text response."""
-    payload = {"items": items}
+    payload = {"tickers": items}
     try:
         resp = requests.post(url, json=payload)
         resp.raise_for_status()
