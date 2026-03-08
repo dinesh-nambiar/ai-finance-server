@@ -4,6 +4,9 @@ from pydantic import BaseModel
 from typing import List
 import uvicorn
 from openai import AzureOpenAI
+import configparser
+from pathlib import Path
+
 
 import finance_info as fi
 
@@ -13,12 +16,9 @@ _endpoint = "https://dines-mmglo60u-eastus2.cognitiveservices.azure.com/"
 _deployment = "gpt-4o"
 _subscription_key = "A4aoNUfh2Z3IPDSSfOLwIGJs6JGgSJtU7tUpLQk564PjE2qUOkdnJQQJ99CCACHYHv6XJ3w3AAAAACOGW1e9"
 _api_version = "2024-12-01-preview"
-_client = AzureOpenAI(
-    api_version=_api_version,
-    azure_endpoint=_endpoint,
-    api_key=_subscription_key,
-)
-# define this ai server settings
+_client = None
+
+# define the ai server settings
 _messages = []
 _ticker_list = []
 # server configuration values (used only when running directly)
@@ -32,6 +32,27 @@ app = FastAPI()
 class TextList(BaseModel):
     """Pydantic model representing the POST payload."""
     items: List[str]
+
+
+def load_config():
+    global _endpoint, _subscription_key, _api_version, _deployment, _url
+    config = configparser.ConfigParser()
+    config_file = Path(r"d:/Development/PythonProjects/ai-finance-server/config") / "cfg.txt"
+    print(f"Loading configuration from {config_file}")
+    config.read(config_file)
+
+    _endpoint = config['azure']['endpoint']
+    _subscription_key = config['azure']['subscription_key']
+    _api_version = config['azure']['api_version']
+    _deployment = config['azure']['deployment']
+    _url = config['api']['ip']
+
+    print(f"azure endpoint:{_endpoint}")
+    print(f"deployment:{_deployment}")
+    print(f"subscription key:{_subscription_key}")
+    print(f"AzureAI api version:{_api_version}")
+    print(f"api url:{_url}")
+
 
 @app.post("/process", response_class=PlainTextResponse)
 def process_items(payload: TextList):
@@ -226,6 +247,13 @@ def set_ai_finance_data():
 
 
 if __name__ == "__main__":
+    load_config()
+    _client = AzureOpenAI(
+        api_version=_api_version,
+        azure_endpoint=_endpoint,
+        api_key=_subscription_key,
+    )
+
     # start FastAPI server when executed directly
     uvicorn.run("aiserver:app", host=_host, port=_port, reload=_reload)
 

@@ -1,6 +1,8 @@
 from distro import info
 import yfinance as yf
 import pandas as pd
+import configparser
+from pathlib import Path
 
 
 _ticker = ''
@@ -13,6 +15,23 @@ _prices = None
 _financials = None
 _balancesheets = None
 _cashflows = None
+_period=""
+_interval=""
+
+
+
+def load_config():
+    global _period, _interval
+    config = configparser.ConfigParser()
+    config_file = Path(r"d:/Development/PythonProjects/ai-finance-server/config") / "cfg.txt"
+    print(f"Loading configuration from {config_file}")
+    config.read(config_file)
+
+    _period = str(config['yfinance']['period'])
+    _interval = str(config['yfinance']['interval'])
+
+    print(f"yfinance period:{_period}")
+    print(f"yfinance interval:{_interval}")
 
 
 def log(level : str, msg : str):
@@ -65,15 +84,21 @@ def get_stock():
     return _stock
 
 
-def get_prices(period="5y", interval="1mo"):
-    global _stock
+def get_prices(period='', interval=''):
+    global _stock, _period, _interval
+
+    if period == '':
+        period = _period
+    if interval == '':
+       interval = _interval
+
     if _stock is None:
         log("INFO", "Stock not initialized. calling set_stock().")
         set_stock()
         if _stock is None:
             return None
-    log("IMPORTANT", f"Fetching prices for ticker:{get_ticker()}")
-    return _stock.history(period=period, interval=interval)
+    log("IMPORTANT", f"Fetching prices for ticker:{get_ticker()}, period={_period}, interval={_interval}")
+    return _stock.history(period, interval)
 
 
 def get_company_info():
@@ -238,5 +263,6 @@ def get_tickers(tickers : list):
 
 
 if __name__ == "__main__":
+    load_config()
     get_tickers(['AAPL', 'MSFT', 'GOOGL'])
 
