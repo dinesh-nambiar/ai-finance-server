@@ -1,0 +1,181 @@
+import pandas as pd
+from openai import AzureOpenAI
+
+import finance_info as fi
+
+
+# Step 3: Generate insights using Azure OpenAI
+_endpoint = "https://dines-mmglo60u-eastus2.cognitiveservices.azure.com/"
+_deployment = "gpt-4o"
+_subscription_key = "A4aoNUfh2Z3IPDSSfOLwIGJs6JGgSJtU7tUpLQk564PjE2qUOkdnJQQJ99CCACHYHv6XJ3w3AAAAACOGW1e9"
+_api_version = "2024-12-01-preview"
+_messages = []
+
+_client = AzureOpenAI(
+    api_version=_api_version,
+    azure_endpoint=_endpoint,
+    api_key=_subscription_key,
+)
+
+def ai_test():
+    global _client, _deployment
+    
+    print("Testing Azure OpenAI client...")
+    response = _client.chat.completions.create(
+        messages=[
+            {
+                "role": "system",
+                "content": "You are a helpful assistant.",
+            },
+            {
+                "role": "user",
+                "content": "I am going to Paris, what should I see?",
+            }
+        ],
+        max_tokens=4096,
+        temperature=1.0,
+        top_p=1.0,
+        model=_deployment
+    )
+    print(response.choices[0].message.content)
+
+
+def set_aifinance_messages(parts : int):
+    global _messages
+
+    _messages = [
+        {
+            "role": "system",
+            "content": "You are a financial analyst. Analyze the financial data provided and provide insights and recommendations.",
+        },
+        {
+            "role": "system",
+            "content": "Financial data will be provided for companies identified by ticker symbols, along with industry and sector information.",
+        }
+    ]
+    
+    if parts >= 1:
+        _messages.extend([
+            {
+                "role": "system",
+                "content": f"The financial data provided has {parts} parts.",
+            },
+        
+            {
+                "role": "system",
+                "content": f"The first {parts if parts < 6 else parts - 2} parts will have the ticker symbol to identify the company.",
+            },
+            {
+              "role": "system",
+                "content": "Part 1 is stock prices for the companies.",
+            }])
+
+    if parts >= 2:
+        _messages.extend([
+            {
+                "role": "system",
+                "content": "Part 2 is financials for the companies.",
+
+            }])
+    if parts >= 3:
+        _messages.extend([
+            {
+                "role": "system",
+                "content": "Part 3 is balance sheet for the companies.",
+
+            }])
+    if parts >= 4:
+        _messages.extend([
+            {
+                "role": "system",
+                "content": "Part 4 is cash flows for the companies.",
+            }])
+    if parts >= 5:
+        _messages.extend([
+            {
+                "role": "system",
+                "content": "Part 5 is company information.",
+            }])
+    if parts >= 6:
+        _messages.extend([
+            {
+                "role": "system",
+                "content": "Part 6 is related to sector information.",
+            }])
+    if parts == 7:
+        _messages.extend([
+            {
+                "role": "system",
+                "content": "Part 7 is for industry information.",
+            }])
+    if parts >= 6:
+        _messages.extend([
+            {
+                "role": "system",
+                "content": "A company is part of an industry and industry is part of a sector.",
+            }])
+    
+
+def get_ai_finance_results():
+    global _client, _deployment, _messages
+
+    # Step 1: Get financial data
+    _ticker_list = ['AAPL', 'MSFT', 'GOOGL']
+    tickers_data = fi.get_tickers(_ticker_list)
+    prices = tickers_data['prices'].describe()
+    financials = tickers_data['financials'].describe()
+    balancesheets = tickers_data['balancesheets'].describe()
+    cashflows = tickers_data['cashflows'].describe()
+    company_infos = tickers_data['company_info']
+    sectors = tickers_data['sector']
+    industries = tickers_data['industry']
+    
+    # Step 2: set prompts for ai finance
+    set_aifinance_messages(1)
+    print(f"Messages for Azure OpenAI:{_messages}")
+
+    # Step 3: add financial data
+    _messages.extend([
+        {
+            "role": "user",
+            "content": f"price data:\n{prices}",
+        },
+        {
+            "role": "user",
+            "content": f"financial data:\n{financials}",
+        },
+        {
+            "role": "user",
+            "content": f"balance sheet data:\n{balancesheets}",
+        },
+        {
+            "role": "user",
+            "content": f"cash flows data:\n{cashflows}",
+        },
+        {
+            "role": "user",
+            "content": f"company information data:\n{company_infos}",
+        },
+        {
+            "role": "user",
+            "content": f"sector data:\n{sectors}",
+        },
+        {
+            "role": "user",
+            "content": f"industry data:\n{industries}",
+        }
+    ])
+
+    print("Running financial analysis using Azure OpenAI...")
+    response = _client.chat.completions.create(
+        messages=_messages,
+        max_tokens=4096,
+        temperature=1.0,
+        top_p=1.0,
+        model=_deployment
+    )
+    print(response.choices[0].message.content)
+
+
+if __name__ == "__main__":
+    get_ai_finance_results()
