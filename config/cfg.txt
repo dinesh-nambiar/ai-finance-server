@@ -5,8 +5,9 @@ subscription_key = A4aoNUfh2Z3IPDSSfOLwIGJs6JGgSJtU7tUpLQk564PjE2qUOkdnJQQJ99CCA
 api_version = 2024-12-01-preview
 
 [yfinance]
-period=5y
-interval=1mo
+period = 5y
+interval = 1mo
 
 [api]
 ip = 192.168.0.2
+port = 8000

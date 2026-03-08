@@ -7,7 +7,6 @@ from openai import AzureOpenAI
 import configparser
 from pathlib import Path
 
-
 import finance_info as fi
 
 
@@ -18,59 +17,38 @@ _subscription_key = "A4aoNUfh2Z3IPDSSfOLwIGJs6JGgSJtU7tUpLQk564PjE2qUOkdnJQQJ99C
 _api_version = "2024-12-01-preview"
 _client = None
 
-# define the ai server settings
+# define the ai server variables
 _messages = []
 _ticker_list = []
 # server configuration values (used only when running directly)
-_host = "192.168.0.2"
-_port = 8000
+_host = ""
+_port = 0
 _reload = True
 
 
-# --- FastAPI application setup ------------------------------------------------
-app = FastAPI()
-class TextList(BaseModel):
-    """Pydantic model representing the POST payload."""
-    items: List[str]
-
-
-def load_config():
-    global _endpoint, _subscription_key, _api_version, _deployment, _url
+def load_config(section=''):
+    global _endpoint, _subscription_key, _api_version, _deployment, _host, _port
     config = configparser.ConfigParser()
     config_file = Path(r"d:/Development/PythonProjects/ai-finance-server/config") / "cfg.txt"
     print(f"Loading configuration from {config_file}")
     config.read(config_file)
 
-    _endpoint = config['azure']['endpoint']
-    _subscription_key = config['azure']['subscription_key']
-    _api_version = config['azure']['api_version']
-    _deployment = config['azure']['deployment']
-    _url = config['api']['ip']
+    if section in ('', 'azure'):
+        _endpoint = config['azure']['endpoint']
+        _subscription_key = config['azure']['subscription_key']
+        _api_version = config['azure']['api_version']
+        _deployment = config['azure']['deployment']
+        print(f"azure endpoint:{_endpoint}")
+        print(f"deployment:{_deployment}")
+        print(f"subscription key:{_subscription_key}")
+        print(f"AzureAI api version:{_api_version}")
 
-    print(f"azure endpoint:{_endpoint}")
-    print(f"deployment:{_deployment}")
-    print(f"subscription key:{_subscription_key}")
-    print(f"AzureAI api version:{_api_version}")
-    print(f"api url:{_url}")
-
-
-@app.post("/process", response_class=PlainTextResponse)
-def process_items(payload: TextList):
-    global _ticker_list
-    """Endpoint that accepts a list of strings and returns an AI response."""
-
-    _ticker_list = payload.items
-    print(f"client ticker list = {_ticker_list}")
-    
-    #TODO: validate the ticker list and skip tickers already present
-    _server_ticker_list = get_aiserver_tickers()
-    print(f"tickers from ai server: {_server_ticker_list}")
-
-    return set_ai_finance_data()
-    # _server_ticker_list 
+    if section in ('', 'api'):
+        _host = config['api']['ip']
+        _port = int(config['api']['port'])
+        print(f"api host:port:{_host}:{_port}")
 
 
-# test util to verify AxureAI client is working correctly.  Not part of the FastAPI server.
 def ai_test():
     global _client, _deployment
     
@@ -101,6 +79,30 @@ def set_aifinance_prompts(parts = 7):
         {
             "role": "system",
             "content": "You are a financial analyst. Analyze the financial data provided and provide insights and recommendations.",
+        },
+        {
+            "role": "system",
+            "content": "Your response should be formated in the order i will explain.",
+        },
+        {
+            "role": "system",
+            "content": "The Financial Performance sub topics 1.Stock Performance, 2.Revenue, 3.EBITDA Margins and 4.Risk Metrics should be in separate sections with the ticker specific information under each section. I dont need the Financial Performance heade.",
+        },
+        {
+            "role": "system",
+            "content": "Followed by Investment Recommendations. Include the ticker specific information under this topic.",
+        },
+        {
+            "role": "system",
+            "content": "Followed by Risk Considerations for Investors. Include the ticker specific information under this topic.",
+        },
+        {
+            "role": "system",
+            "content": "Followed by Sector and Industry Insights",
+        },
+        {
+            "role": "system",
+            "content": "Lasty the Conclusion.",
         },
         {
             "role": "system",
@@ -171,6 +173,7 @@ def set_aifinance_prompts(parts = 7):
     
 
 def get_aiserver_tickers():
+    global _client
     response = _client.chat.completions.create(
         messages=[{
             "role": "user",
@@ -246,14 +249,38 @@ def set_ai_finance_data():
     return response.choices[0].message.content
 
 
-if __name__ == "__main__":
-    load_config()
-    _client = AzureOpenAI(
+# --- FastAPI application setup ------------------------------------------------
+app = FastAPI()
+load_config('azure')
+_client = AzureOpenAI(
         api_version=_api_version,
         azure_endpoint=_endpoint,
         api_key=_subscription_key,
-    )
+        )
 
+class TextList(BaseModel):
+    """Pydantic model representing the POST payload."""
+    tickers: List[str]
+
+
+@app.post("/process", response_class=PlainTextResponse)
+def process_items(payload: TextList):
+    global _ticker_list
+    """Endpoint that accepts a list of strings and returns an AI response."""
+
+    _ticker_list = payload.tickers
+    print(f"client ticker list = {_ticker_list}")
+    
+    #TODO: validate the ticker list and skip tickers already present
+    _server_ticker_list = get_aiserver_tickers()
+    print(f"tickers from ai server: {_server_ticker_list}")
+
+    return set_ai_finance_data()
+    # _server_ticker_list 
+
+
+# test util to verify AxureAI client is working correctly.  Not part of the FastAPI server.
+if __name__ == "__main__":
+    load_config('api')
     # start FastAPI server when executed directly
     uvicorn.run("aiserver:app", host=_host, port=_port, reload=_reload)
-
