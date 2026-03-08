@@ -1,22 +1,55 @@
-import pandas as pd
+from fastapi import FastAPI
+from fastapi.responses import PlainTextResponse
+from pydantic import BaseModel
+from typing import List
+import uvicorn
 from openai import AzureOpenAI
 
 import finance_info as fi
 
 
-# Step 3: Generate insights using Azure OpenAI
+# define Azure OpenAI settings
 _endpoint = "https://dines-mmglo60u-eastus2.cognitiveservices.azure.com/"
 _deployment = "gpt-4o"
 _subscription_key = "A4aoNUfh2Z3IPDSSfOLwIGJs6JGgSJtU7tUpLQk564PjE2qUOkdnJQQJ99CCACHYHv6XJ3w3AAAAACOGW1e9"
 _api_version = "2024-12-01-preview"
-_messages = []
-
 _client = AzureOpenAI(
     api_version=_api_version,
     azure_endpoint=_endpoint,
     api_key=_subscription_key,
 )
+# define this ai server settings
+_messages = []
+_ticker_list = []
+# server configuration values (used only when running directly)
+_host = "192.168.0.2"
+_port = 8000
+_reload = True
 
+
+# --- FastAPI application setup ------------------------------------------------
+app = FastAPI()
+class TextList(BaseModel):
+    """Pydantic model representing the POST payload."""
+    items: List[str]
+
+@app.post("/process", response_class=PlainTextResponse)
+def process_items(payload: TextList):
+    global _ticker_list
+    """Endpoint that accepts a list of strings and returns an AI response."""
+
+    _ticker_list = payload.items
+    print(f"client ticker list = {_ticker_list}")
+    
+    #TODO: validate the ticker list and skip tickers already present
+    _server_ticker_list = get_aiserver_tickers()
+    print(f"tickers from ai server: {_server_ticker_list}")
+
+    return set_ai_finance_data()
+    # _server_ticker_list 
+
+
+# test util to verify AxureAI client is working correctly.  Not part of the FastAPI server.
 def ai_test():
     global _client, _deployment
     
@@ -40,7 +73,7 @@ def ai_test():
     print(response.choices[0].message.content)
 
 
-def set_aifinance_messages(parts : int):
+def set_aifinance_prompts(parts = 7):
     global _messages
 
     _messages = [
@@ -58,55 +91,55 @@ def set_aifinance_messages(parts : int):
         _messages.extend([
             {
                 "role": "system",
-                "content": f"The financial data provided has {parts} parts.",
+                "content": f"The financial data provided has {parts} datesets.",
             },
         
             {
                 "role": "system",
-                "content": f"The first {parts if parts < 6 else parts - 2} parts will have the ticker symbol to identify the company.",
+                "content": f"The first {parts if parts < 6 else parts - 2} dataset will have the ticker symbol to identify the company.",
             },
             {
               "role": "system",
-                "content": "Part 1 is stock prices for the companies.",
+                "content": "dataset 1 is stock prices for the companies.",
             }])
 
     if parts >= 2:
         _messages.extend([
             {
                 "role": "system",
-                "content": "Part 2 is financials for the companies.",
+                "content": "dataset 2 is financials for the companies.",
 
             }])
     if parts >= 3:
         _messages.extend([
             {
                 "role": "system",
-                "content": "Part 3 is balance sheet for the companies.",
+                "content": "dataset 3 is balance sheet for the companies.",
 
             }])
     if parts >= 4:
         _messages.extend([
             {
                 "role": "system",
-                "content": "Part 4 is cash flows for the companies.",
+                "content": "dataset 4 is cash flows for the companies.",
             }])
     if parts >= 5:
         _messages.extend([
             {
                 "role": "system",
-                "content": "Part 5 is company information.",
+                "content": "dataset 5 is company information.",
             }])
     if parts >= 6:
         _messages.extend([
             {
                 "role": "system",
-                "content": "Part 6 is related to sector information.",
+                "content": "dataset 6 is related to sector information.",
             }])
     if parts == 7:
         _messages.extend([
             {
                 "role": "system",
-                "content": "Part 7 is for industry information.",
+                "content": "dataset 7 is for industry information.",
             }])
     if parts >= 6:
         _messages.extend([
@@ -116,11 +149,26 @@ def set_aifinance_messages(parts : int):
             }])
     
 
-def get_ai_finance_results():
-    global _client, _deployment, _messages
+def get_aiserver_tickers():
+    response = _client.chat.completions.create(
+        messages=[{
+            "role": "user",
+            "content": "List the tickers you have data for. Only list the tickers as a comma separated list",
+        }],
+        max_tokens=4096,
+        temperature=1.0,
+        top_p=1.0,
+        model=_deployment
+    )
+    return response.choices[0].message.content
+
+
+def set_ai_finance_data():
+    global _client, _deployment, _messages, _ticker_list
 
     # Step 1: Get financial data
-    _ticker_list = ['AAPL', 'MSFT', 'GOOGL']
+    #_ticker_list = ['AAPL', 'MSFT', 'GOOGL']
+    print(f"tickers:{_ticker_list}")
     tickers_data = fi.get_tickers(_ticker_list)
     prices = tickers_data['prices'].describe()
     financials = tickers_data['financials'].describe()
@@ -131,8 +179,8 @@ def get_ai_finance_results():
     industries = tickers_data['industry']
     
     # Step 2: set prompts for ai finance
-    set_aifinance_messages(1)
-    print(f"Messages for Azure OpenAI:{_messages}")
+    set_aifinance_prompts()
+    print(f"Messages for Azure OpenAI:{len(_messages)}")
 
     # Step 3: add financial data
     _messages.extend([
@@ -174,8 +222,10 @@ def get_ai_finance_results():
         top_p=1.0,
         model=_deployment
     )
-    print(response.choices[0].message.content)
+    return response.choices[0].message.content
 
 
 if __name__ == "__main__":
-    get_ai_finance_results()
+    # start FastAPI server when executed directly
+    uvicorn.run("aiserver:app", host=_host, port=_port, reload=_reload)
+
