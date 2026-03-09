@@ -66,7 +66,7 @@ def set_stock():
 
     if _stock is not None:
         if _ticker == _stock.info.get('symbol'):
-            log("IMPORTANT", f"Stock already initialized for ticker:{_ticker()}")
+            log("IMPORTANT", f"Stock already initialized for ticker:{_ticker}")
             return
     
     _stock = yf.Ticker(_ticker)
@@ -83,7 +83,7 @@ def get_stock():
     return _stock
 
 
-def get_prices(period='', interval=''):
+def get_prices(period='', interval=''): 
     global _stock, _period, _interval
 
     if period == '':
@@ -158,8 +158,8 @@ def get_sector():
             return None
 
     log("IMPORTANT", f"Fetching sector for ticker:{get_ticker()}")
-    _sector = yf.Sector(_stock.info.get('sectorKey'))
-    log("INFO", f"Sector: key={_sector.key}, name={_sector.name}, overview={_sector.overview}, top companies={_sector.top_companies.size}")
+    _sector = yf.Sector(_stock.info.get('sectorKey')) # type: ignore
+    log("INFO", f"Sector: key={_sector.key}, name={_sector.name}, overview={_sector.overview}, top companies={_sector.top_companies.size}") # type: ignore
 
     return {
         'key': _sector.key, 'name': _sector.name,
@@ -177,8 +177,8 @@ def get_industry():
         if _stock is None:
             return None
     log("IMPORTANT", f"Fetching industry for ticker:{get_ticker()}")
-    _industry = yf.Industry(_stock.info.get('industryKey'))
-    log("INFO", f"Industry: key={_industry.sector_key}, name={_industry.sector_name}, top companies={_industry.top_performing_companies.size}, growth companies={_industry.top_growth_companies.size}")
+    _industry = yf.Industry(_stock.info.get('industryKey')) # type: ignore
+    log("INFO", f"Industry: key={_industry.sector_key}, name={_industry.sector_name}, top companies={_industry.top_performing_companies.size}, growth companies={_industry.top_growth_companies.size}") # type: ignore
 
     return {
         'key': _industry.key, 'name': _industry.name, 
@@ -196,55 +196,55 @@ def get_ticker_data():
         return
 
     prices = get_prices()
-    add_ticker(prices)
+    add_ticker(prices) # type: ignore
     if _prices is None:
         _prices = prices
     else:
         _prices = pd.concat([_prices, prices], ignore_index=True)
-    log("INFO", f"Prices:\n{_prices.head(3)}\n{_prices.tail(2)}")
+    log("INFO", f"Prices:\n{_prices.head(3)}\n{_prices.tail(2)}") # type: ignore
 
     financials = get_financials()
-    add_ticker(financials)
+    add_ticker(financials) # type: ignore
     if _financials is None:
         _financials = financials
     else:
         _financials = pd.concat([_financials, financials], ignore_index=True)
-    log("INFO", f"Financials:\n{_financials.head(3)}\n{_financials.tail(2)}")
+    log("INFO", f"Financials:\n{_financials.head(3)}\n{_financials.tail(2)}") # type: ignore
 
     balance_sheet = get_balance_sheet()
-    add_ticker(balance_sheet)
+    add_ticker(balance_sheet) # type: ignore
     if _balancesheets is None:
         _balancesheets = balance_sheet
     else:
         _balancesheets = pd.concat([_balancesheets, balance_sheet], ignore_index=True)
-    log("INFO", f"Balance Sheet:\n{_balancesheets.head(3)}\n{_balancesheets.tail(2)}")
+    log("INFO", f"Balance Sheet:\n{_balancesheets.head(3)}\n{_balancesheets.tail(2)}") # type: ignore
 
     cashflow = get_cashflow()
-    add_ticker(cashflow)
+    add_ticker(cashflow) # type: ignore
     if _cashflows is None:
         _cashflows = cashflow
     else:
         _cashflows = pd.concat([_cashflows, cashflow], ignore_index=True)
-    log("INFO", f"Cash Flow:\n{_cashflows.head(3)}\n{_cashflows.tail(2)}")
+    log("INFO", f"Cash Flow:\n{_cashflows.head(3)}\n{_cashflows.tail(2)}") # type: ignore
 
     company_info = get_company_info()
-    log("INFO", f'company info:\n{company_info["symbol"]}')
-    if company_info['symbol'] not in [info.get('symbol') for info in _company_info]:
-        log("IMPORTANT", f"Adding company info for symbol:{company_info['symbol']}")
+    log("INFO", f'company info:\n{company_info["symbol"]}') # type: ignore
+    if company_info['symbol'] not in [info.get('symbol') for info in _company_info]: # type: ignore
+        log("IMPORTANT", f"Adding company info for symbol:{company_info['symbol']}") # type: ignore
         _company_info.append(company_info)
     log("INFO", f"symbols:\n{[info['symbol'] for info in _company_info]}")
 
     sector = get_sector()
-    log("INFO", f"sector: name={sector['name']}")
-    if sector['key'] not in [sector.get('key') for sector in _sector]:
-        log("IMPORTANT", f"Adding sector info for sector:{sector['key']}")
+    log("INFO", f"sector: name={sector['name']}") # type: ignore
+    if sector['key'] not in [sector.get('key') for sector in _sector]: # type: ignore
+        log("IMPORTANT", f"Adding sector info for sector:{sector['key']}") # type: ignore
         _sector.append(sector)
     log("INFO", f"sectors\n{[sector['key'] for sector in _sector]}")
 
     industry = get_industry()
-    log("INFO", f"Industry: name={industry['name']}")
-    if industry['key'] not in [industry.get('key') for industry in _industry]:
-        log("IMPORTANT", f"Adding industry info for key:{industry['key']}")
+    log("INFO", f"Industry: name={industry['name']}") # type: ignore
+    if industry['key'] not in [industry.get('key') for industry in _industry]: # type: ignore
+        log("IMPORTANT", f"Adding industry info for key:{industry['key']}") # type: ignore
         _industry.append(industry)
     log("INFO", f"industries\n{[industry['key'] for industry in _industry]}")
     

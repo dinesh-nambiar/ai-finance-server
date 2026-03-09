@@ -15,7 +15,7 @@ _endpoint = "https://dines-mmglo60u-eastus2.cognitiveservices.azure.com/"
 _deployment = "gpt-4o"
 _subscription_key = "A4aoNUfh2Z3IPDSSfOLwIGJs6JGgSJtU7tUpLQk564PjE2qUOkdnJQQJ99CCACHYHv6XJ3w3AAAAACOGW1e9"
 _api_version = "2024-12-01-preview"
-_client = None
+_client = None 
 
 # define the ai server variables
 _messages = []
@@ -53,7 +53,7 @@ def ai_test():
     global _client, _deployment
     
     print("Testing Azure OpenAI client...")
-    response = _client.chat.completions.create(
+    response = _client.chat.completions.create( # type: ignore
         messages=[
             {
                 "role": "system",
@@ -73,16 +73,24 @@ def ai_test():
 
 
 def set_aifinance_prompts(parts = 7):
-    global _messages
+    global _messages, _ticker_list
 
     _messages = [
         {
             "role": "system",
             "content": "You are a financial analyst. Analyze the financial data provided and provide insights and recommendations.",
         },
+       {
+            "role": "system",
+            "content": "Financial data will be provided for companies identified by ticker symbols.",
+        },
         {
             "role": "system",
-            "content": "Your response should be formated in the order i will explain.",
+            "content": f"Your response should be restricted to the following tickers only: {_ticker_list}.",
+        },
+        {
+            "role": "system",
+            "content": "Your response should be formated in the order explained below.",
         },
         {
             "role": "system",
@@ -90,7 +98,7 @@ def set_aifinance_prompts(parts = 7):
         },
         {
             "role": "system",
-            "content": "Followed by Investment Recommendations. Include the ticker specific information under this topic.",
+            "content": "Followed by Sector and Industry Insights",
         },
         {
             "role": "system",
@@ -98,15 +106,11 @@ def set_aifinance_prompts(parts = 7):
         },
         {
             "role": "system",
-            "content": "Followed by Sector and Industry Insights",
+            "content": "Followed by Investment Recommendations. Include the ticker specific information under this topic.",
         },
         {
             "role": "system",
             "content": "Lasty the Conclusion.",
-        },
-        {
-            "role": "system",
-            "content": "Financial data will be provided for companies identified by ticker symbols, along with industry and sector information.",
         }
     ]
     
@@ -174,7 +178,7 @@ def set_aifinance_prompts(parts = 7):
 
 def get_aiserver_tickers():
     global _client
-    response = _client.chat.completions.create(
+    response = _client.chat.completions.create( # type: ignore
         messages=[{
             "role": "user",
             "content": "List the tickers you have data for. Only list the tickers as a comma separated list",
@@ -238,14 +242,15 @@ def set_ai_finance_data():
         }
     ])
 
-    print("Running financial analysis using Azure OpenAI...")
-    response = _client.chat.completions.create(
-        messages=_messages,
+    print("Running financial analysis.")
+    response = _client.chat.completions.create( # type: ignore
+        messages=_messages, # type: ignore
         max_tokens=4096,
         temperature=1.0,
         top_p=1.0,
         model=_deployment
     )
+    print("Financial analysis complete.")
     return response.choices[0].message.content
 
 
