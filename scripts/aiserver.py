@@ -94,7 +94,7 @@ def set_aifinance_prompts(parts = 7):
         },
         {
             "role": "system",
-            "content": "The Financial Performance sub topics 1.Stock Performance, 2.Revenue, 3.EBITDA Margins and 4.Risk Metrics should be in separate sections with the ticker specific information under each section. I dont need the Financial Performance heade.",
+            "content": "The Financial Performance sub topics Stock Performance, Revenue, EBITDA Margins and Risk Metrics should be in separate sections with the ticker specific information under each section. I dont need the Financial Performance header.",
         },
         {
             "role": "system",
@@ -250,7 +250,6 @@ def set_ai_finance_data():
         top_p=1.0,
         model=_deployment
     )
-    print("Financial analysis complete.")
     return response.choices[0].message.content
 
 
