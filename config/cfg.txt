@@ -1,7 +1,7 @@
 [azure]
 endpoint = https://dines-mmglo60u-eastus2.cognitiveservices.azure.com/
 deployment = gpt-4o
-subscription_key = A4aoNUfh2Z3IPDSSfOLwIGJs6JGgSJtU7tUpLQk564PjE2qUOkdnJQQJ99CCACHYHv6XJ3w3AAAAACOGW1e9
+subscription_key = 
 api_version = 2024-12-01-preview
 
 [yfinance]
